@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select a Category</title>
+  <style>
+    .product {
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h1>Product Search and Categories</h1>
+  
+  <!-- Search Form -->
+  <form id="search-form">
+    <label for="search">Search Products:</label>
+    <input type="text" id="search" name="search" placeholder="Search products...">
+    <button type="submit">Search</button>
+  </form>
+
+  <!-- Category Selection Form -->
+  <form id="category-form">
+    <label for="category">Category:</label>
+    <select name="category" id="category">
+      <option value="">All Categories</option>
+      <% categories.forEach(function(category) { %>
+        <option value="<%= category %>"><%= category %></option>
+      <% }); %>
+    </select>
+    <button type="submit">Submit</button>
+  </form>
+
+  <h2>Products</h2>
+  <div id="product-list"></div>
+
+  <button id="load-more" style="display: none;">Load More</button>
+
+  <script>
+    let currentPage = 1;
+    let selectedCategory = '';
+    let searchQuery = '';
+    let hasMore = true;
+
+    const loadMoreButton = document.getElementById('load-more');
+    const productList = document.getElementById('product-list');
+
+    // Fetch products based on the current page, selected category, and search query
+    async function fetchProducts() {
+      if (!hasMore) return;
+
+      loadMoreButton.style.display = 'none';
+
+      try {
+        const response = await fetch(`/fetch-products?page=${currentPage}&category=${selectedCategory}&search=${searchQuery}`);
+        const data = await response.json();
+
+        // Append the new products to the existing list
+        data.products.forEach(product => {
+          const productElement = document.createElement('div');
+          productElement.classList.add('product');
+          productElement.innerHTML = `
+            <strong>${product.title}</strong><br>
+            <em>Category:</em> ${product.category}<br>
+            <em>Price:</em> $${product.price}
+          `;
+          productList.appendChild(productElement);
+        });
+
+        hasMore = data.hasMore;
+        if (hasMore) {
+          currentPage++;
+          loadMoreButton.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+    }
+
+    // On form submit, load products based on the selected category
+    document.getElementById('category-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      currentPage = 1;
+      hasMore = true;
+      selectedCategory = document.getElementById('category').value;
+      searchQuery = ''; // Clear search query if category form is used
+      productList.innerHTML = ''; // Clear the previous products
+      fetchProducts(); // Fetch the first batch
+    });
+
+    // On search form submit, load products based on the search query
+    document.getElementById('search-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      currentPage = 1;
+      hasMore = true;
+      searchQuery = document.getElementById('search').value;
+      selectedCategory = ''; // Clear selected category if search form is used
+      productList.innerHTML = ''; // Clear the previous products
+      fetchProducts(); // Fetch the first batch of search results
+    });
+
+    // Load more products when "Load More" button is clicked
+    loadMoreButton.addEventListener('click', () => {
+      fetchProducts();
+    });
+
+    // Initial load
+    fetchProducts();
+  </script>
+</body>
+</html>
